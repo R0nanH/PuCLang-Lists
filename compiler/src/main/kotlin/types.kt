@@ -23,7 +23,8 @@ class Typechecker {
                 applySolution(ty.result, solution)
             )
 
-            is Monotype.Unknown -> solution[ty.u]?.let { applySolution(it) } ?: ty
+            is Monotype.Unknown -> solution[ty.u]?.let { applySolution(it, solution) } ?: ty
+            is Monotype.List -> Monotype.List(applySolution(ty.tyElement, solution))
         }
     }
 
@@ -43,7 +44,11 @@ class Typechecker {
         if (ty1 is Monotype.Function && ty2 is Monotype.Function) {
             unify(ty1.arg, ty2.arg)
             unify(ty1.result, ty2.result)
-        } else if (ty1 is Monotype.Unknown) {
+        }
+        else if (ty1 is Monotype.List && ty2 is Monotype.List){
+            unify(ty1.tyElement, ty2.tyElement)
+        }
+        else if (ty1 is Monotype.Unknown) {
             if (ty2.unknowns().contains(ty1.u)) {
                 throw Error("Can't resolve infinite type ${ty1.print()} ~ ${ty2.print()}")
             }
@@ -99,6 +104,16 @@ class Typechecker {
                     Operator.And -> Triple(Monotype.Bool, Monotype.Bool, Monotype.Bool)
 
                     Operator.Concat -> Triple(Monotype.Text, Monotype.Text, Monotype.Text)
+
+                    Operator.Listcons -> {
+                        val listTy = freshUnknown()
+                        if(infer(ctx, expr.left) is Monotype.List) {
+                            Triple(listTy, listTy, listTy)
+                        }
+                        else {
+                            Triple(listTy, Monotype.List(listTy), Monotype.List(listTy))
+                        }
+                    }
                 }
                 val tyLeft = infer(ctx, expr.left)
                 val tyRight = infer(ctx, expr.right)
@@ -158,6 +173,15 @@ class Typechecker {
                     ty1
                 }
             }
+
+            is Expr.List -> {
+                val tyElement = freshUnknown()
+                for (element in expr.elements) {
+                    val ty = infer(ctx, element)
+                    equalType("Listenelement", ty, tyElement)
+                }
+                Monotype.List(tyElement)
+            }
         }
     }
 
@@ -180,6 +204,15 @@ class Typechecker {
                 lookupConstructor(pattern.type, pattern.name, pattern.fields).fold(ctx) { acc, (field, ty) ->
                     acc.put(field, Polytype.fromMono(ty))
                 }
+            }
+
+            is Pattern.ListPattern -> {
+                val tyElement = freshUnknown()
+                equalType("",Monotype.List(tyElement), ty)
+                if(pattern.getHead() == null) return ctx
+                ctx
+                    .put(pattern.getHead()!!, Polytype.fromMono(tyElement))
+                    .put(pattern.getTail()!!, Polytype.fromMono(Monotype.List(tyElement)))
             }
         }
     }

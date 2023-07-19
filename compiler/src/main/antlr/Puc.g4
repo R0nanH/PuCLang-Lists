@@ -22,10 +22,14 @@ atom
   | 'let' NAME '=' bound=expr 'in' body=expr # Let
   | typ=UP_NAME '.' constr=UP_NAME '(' (expr (',' expr)*)? ')' # Construction
   | 'case' scrutinee=expr '{' branches=caseBranch+ '}' # Case
+  | '[' (expr (',' expr)*)? ']' # List
   ;
 
 caseBranch: 'of' pattern '=>' body=expr;
-pattern: typ=UP_NAME '.' constr=UP_NAME '(' (NAME (',' NAME)*)? ')';
+pattern
+  : typ=UP_NAME '.' constr=UP_NAME '(' (NAME (',' NAME)*)? ')' #ConstructorPat
+  | '[' (NAME ',' NAME)? ']' #ListPat
+  ;
 
 expr
   : atom # Unary
@@ -34,12 +38,14 @@ expr
   | left=expr op='==' right=expr # Binary
   | left=expr op='&&' right=expr # Binary
   | left=expr op='||' right=expr # Binary
+  | left=expr op='::' right=expr # Binary
   ;
 
 type
   : 'Integer' # TyInt
   | 'Text' # TyText
   | 'Bool' # TyBool
+  | '['type']' #TyList
   | '(' inner=type ')' # TyParenthesized
   | NAME # TyVar
   | UP_NAME # TyConstructor

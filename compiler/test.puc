@@ -1,0 +1,7 @@
+let is_even = fn x => (x / 2) * 2 == x in
+let add_one = fn x => x + 1 in
+let numls = [1, 2, 3, 4] in
+
+let concat_a = fn x => x ++ "a" in
+let alphls = ["a", "b", "c", "a"] in
+map(concat_a)(alphls)

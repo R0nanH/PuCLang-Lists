@@ -1,9 +1,29 @@
-def <a>twice(f : a -> a, x : a) : a =>
-  f(f(x))
+def filter(f: a -> Bool, list: [a]): [a] =>
+    case list {
+        of [] => []
+        of [h, t] =>
+            if f(h) then
+                h::filter(f)(t)
+            else
+                filter(f)(t)
+    }
 
-def <a, b>const(x : a, y : b) : a =>
-  x
+def map(f: a -> a, list: [a]) : [a] =>
+    case list {
+        of [] => []
+        of [h, t] =>
+            f(h)::map(f)(t)
+    }
 
-let shout = twice(fn s => s ++ "!") in
-let add_two = twice(fn x => x + 1) in
-add_two(10)
+
+def size(list: [a]): Integer =>
+    case list {
+        of [] => 0
+        of [h, t] => 1 + size(t)
+    }
+
+
+let concat_a = fn x => x ++ "a" in
+let alphls = ["a", "b", "c", "a"] in
+map(concat_a)(alphls)
+

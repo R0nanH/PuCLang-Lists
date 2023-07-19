@@ -12,17 +12,23 @@ sealed class Expr {
     data class Binary(val left: Expr, val op: Operator, val right: Expr) : Expr()
     data class Let(val name: String, val bound: Expr, val body: Expr) : Expr()
     data class Lit(val p: Primitive) : Expr()
-    data class Construction(val type: String, val name: String, val fields: List<Expr>) : Expr()
-    data class Case(val scrutinee: Expr, val branches: List<CaseBranch>) : Expr()
+    data class Construction(val type: String, val name: String, val fields: kotlin.collections.List<Expr>) : Expr()
+    data class Case(val scrutinee: Expr, val branches: kotlin.collections.List<CaseBranch>) : Expr()
 
     // Used to implement built-in functions in the evaluator,
     // doesn't exist at the syntax level
     data class Builtin(val name: String) : Expr()
+
+    data class List(val elements: kotlin.collections.List<Expr>) : Expr()
 }
 
 data class CaseBranch(val pattern: Pattern, val body: Expr)
 sealed class Pattern {
     data class Constructor(val type: String, val name: String, val fields: List<String>) : Pattern()
+    data class ListPattern(val binder: Pair<String, String>?) : Pattern() {
+        fun getHead() : String? = binder?.first
+        fun getTail() : String? = binder?.second
+    }
 }
 
 sealed class Primitive {
@@ -32,7 +38,7 @@ sealed class Primitive {
 }
 
 enum class Operator {
-    Add, Sub, Mul, Div, Eq, Or, And, Concat
+    Add, Sub, Mul, Div, Eq, Or, And, Concat, Listcons
 }
 
 sealed class Monotype {
@@ -40,6 +46,8 @@ sealed class Monotype {
     object Text : Monotype()
     object Bool : Monotype()
     data class Constructor(val name: String) : Monotype()
+
+    data class List(val tyElement: Monotype) : Monotype()
     data class Var(val name: String) : Monotype()
     data class Function(val arg: Monotype, val result: Monotype) : Monotype()
     data class Unknown(val u: Int) : Monotype()
@@ -59,6 +67,7 @@ sealed class Monotype {
             }
 
             is Unknown -> "u$u"
+            is List -> "[${tyElement.print()}]"
         }
     }
 
@@ -67,6 +76,7 @@ sealed class Monotype {
             Bool, is Constructor, Integer, Text, is Unknown -> this
             is Function -> Function(arg.substitute(v, replacement), result.substitute(v, replacement))
             is Var -> if (v == name) { replacement } else { this }
+            is List -> List(tyElement.substitute(v, replacement))
         }
     }
 
@@ -75,6 +85,7 @@ sealed class Monotype {
             Bool, is Constructor, is Var, Integer, Text -> setOf()
             is Function -> arg.unknowns().union(result.unknowns())
             is Unknown -> setOf(u)
+            is List -> tyElement.unknowns()
         }
     }
 }

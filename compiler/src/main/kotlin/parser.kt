@@ -1,5 +1,6 @@
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.CharStreams
+import java.lang.NullPointerException
 
 fun parseString(input: String): Prog {
     val lexer = PucLexer(CharStreams.fromString(input))
@@ -64,11 +65,21 @@ class TypeDefVisitor(): PucBaseVisitor<TypeDef>() {
 }
 
 class PatternVisitor(): PucBaseVisitor<Pattern>() {
-    override fun visitPattern(ctx: PucParser.PatternContext): Pattern {
+
+    override fun visitConstructorPat(ctx: PucParser.ConstructorPatContext): Pattern {
         val type = ctx.typ.text
         val name = ctx.constr.text
         val fields = ctx.NAME().map { it.text }
         return Pattern.Constructor(type, name, fields)
+    }
+
+    override fun visitListPat(ctx: PucParser.ListPatContext): Pattern {
+        if (ctx.NAME().isEmpty()) {
+            return Pattern.ListPattern(null)
+        }
+        val head = ctx.NAME(0).text
+        val tail = ctx.NAME(1).text
+        return Pattern.ListPattern(head to tail)
     }
 }
 
@@ -83,6 +94,12 @@ class TypeVisitor(): PucBaseVisitor<Monotype>() {
 
     override fun visitTyText(ctx: PucParser.TyTextContext?): Monotype {
         return Monotype.Text
+    }
+
+    override fun visitTyList(ctx: PucParser.TyListContext?): Monotype {
+        val tyInner = visit(ctx!!.type())
+        return Monotype.List(tyInner)
+
     }
 
     override fun visitTyParenthesized(ctx: PucParser.TyParenthesizedContext): Monotype {
@@ -188,9 +205,15 @@ class ExprVisitor(): PucBaseVisitor<Expr>() {
             "||" -> Operator.Or
             "&&" -> Operator.And
             "++" -> Operator.Concat
+            "::" -> Operator.Listcons
             else -> throw Error("Unknown operator")
         }
         val right = this.visit(ctx.right)
         return Expr.Binary(left, op, right)
+    }
+
+    override fun visitList(ctx: PucParser.ListContext): Expr {
+        val elements = ctx.expr().map { this.visit(it) }
+        return Expr.List(elements)
     }
 }

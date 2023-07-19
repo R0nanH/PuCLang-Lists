@@ -1,5 +1,6 @@
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
 
 typealias Env = PersistentMap<String, Value>
@@ -108,6 +109,8 @@ class Evaluator(fnDefs: List<FnDef>) {
 
                     Operator.Concat ->
                         evalBinary<Value.Text>(left, right) { l, r -> Value.Text(l.value + r.value) }
+
+                    Operator.Listcons -> evalListcons(left, right.castAs())
                 }
             }
 
@@ -163,6 +166,14 @@ class Evaluator(fnDefs: List<FnDef>) {
                 }
                 throw Error("Failed to match $scrutinee")
             }
+
+            is Expr.List -> {
+                if(expr.elements.isEmpty()) {
+                    return Value.Struct("listnil", listOf())
+                }
+                return expr.elements.map { eval(env, it) }.foldRight(Value.Struct("listnil", listOf()))
+                { acc, value : Value -> Value.Struct("listcons", listOf(acc, value))}
+            }
         }
     }
 
@@ -178,12 +189,54 @@ class Evaluator(fnDefs: List<FnDef>) {
                     }
                 }
             }
+
+            is Pattern.ListPattern -> {
+                if (scrutinee.tag == "listnil" && pattern.getHead() == null) {
+                        return listOf()
+
+                }
+                if (scrutinee.tag == "listcons" && pattern.getHead() != null) {
+                        return listOf(
+                            Pair(pattern.getHead()!!, scrutinee.fields[0]),
+                            Pair(pattern.getTail()!!, scrutinee.fields[1])
+                        )
+                }
+            }
         }
         return null
     }
 
     inline fun <reified T> evalBinary(left: Value, right: Value, f: (T, T) -> Value): Value =
         f(left.castAs<T>(), right.castAs<T>())
+
+    inline fun evalListcons(left: Value, right: Value.Struct) : Value.Struct {
+        when (left) {
+            is Value.Struct -> {
+                if(left.tag == "listnil") {
+                    return right
+                }
+                if(right.tag == "listnil") {
+                    return left
+                }
+                return if(left.fields[0].javaClass == right.fields[0].javaClass) {
+                    Value.Struct("listcons", listOf(left, right))
+                } else {
+                    throw Error("The two lists do not contain same types of values")
+                }
+            }
+            else -> {
+                return if(right.tag == "listnil") {
+                    Value.Struct("listcons", listOf(left, right))
+                } else if(left.javaClass == right.fields[0].javaClass) {
+                    Value.Struct("listcons", listOf(left, right))
+                }
+                else {
+                    throw Error("Left element of :: not of the same Value type of List elements")
+                }
+            }
+        }
+    }
+
 }
 
 
