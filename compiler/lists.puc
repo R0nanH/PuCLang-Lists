@@ -1,0 +1,10 @@
+let is_even = fn x => (x / 2) * 2 == x in
+let add_one = fn x => x + 1 in
+let add = fn x => fn y => x + y in
+let ls = [1, 2, 3, 4] in
+
+let concat_a = fn x => x ++ "a" in
+let create_text = fn x => fn y => x ++ y in
+let ls = ["a", "b", "c", "a"] in
+fold(ls)("")(create_text)
+

@@ -2,6 +2,7 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
+import kotlin.math.exp
 
 typealias Env = PersistentMap<String, Value>
 
@@ -171,6 +172,13 @@ class Evaluator(fnDefs: List<FnDef>) {
                 if(expr.elements.isEmpty()) {
                     return Value.Struct("listnil", listOf())
                 }
+                val value = eval(env, expr.elements[0])
+                for(element in expr.elements) {
+                    val evaled = eval(env, element)
+                    if (evaled.javaClass != value.javaClass) {
+                        throw Error("List must only contain elements of ${value.javaClass}")
+                    }
+                }
                 return expr.elements.map { eval(env, it) }.foldRight(Value.Struct("listnil", listOf()))
                 { acc, value : Value -> Value.Struct("listcons", listOf(acc, value))}
             }
@@ -221,7 +229,7 @@ class Evaluator(fnDefs: List<FnDef>) {
                 return if(left.fields[0].javaClass == right.fields[0].javaClass) {
                     Value.Struct("listcons", listOf(left, right))
                 } else {
-                    throw Error("The two lists do not contain same types of values")
+                    throw Error("Left list must contain elements of type ${right.fields[0].javaClass}")
                 }
             }
             else -> {
@@ -231,7 +239,7 @@ class Evaluator(fnDefs: List<FnDef>) {
                     Value.Struct("listcons", listOf(left, right))
                 }
                 else {
-                    throw Error("Left element of :: not of the same Value type of List elements")
+                    throw Error("Left element of :: must be of type ${right.fields[0].javaClass}")
                 }
             }
         }

@@ -1,0 +1,35 @@
+def <a> filter(f: a -> Bool, list: [a]): [a] =>
+    case list {
+        of [] => []
+        of [h, t] =>
+            if f(h) then
+                h::filter(f)(t)
+            else
+                filter(f)(t)
+    }
+
+def <a, b> map(f: a -> b, list: [a]) : [b] =>
+    case list {
+        of [] => []
+        of [h, t] =>
+            f(h)::map(f)(t)
+    }
+
+def <a> size(list: [a]): Integer =>
+    case list {
+        of [] => 0
+        of [h, t] => 1 + size(t)
+    }
+
+def <a, b> fold(list : [b], initial : a, f: a -> b -> a) : a =>
+    case list {
+        of [] => initial
+        of [h, t] =>
+            let y = f(initial)(h) in
+            fold(t)(y)(f)
+        }
+
+let concat_a = fn x => x ++ "a" in
+let create_text = fn x => fn y => x ++ y in
+let ls = ["a", "b", "c", "a"] in
+fold(ls)("")(create_text)
