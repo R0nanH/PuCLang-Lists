@@ -1,8 +1,6 @@
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
-import kotlin.math.exp
 
 typealias Env = PersistentMap<String, Value>
 
@@ -172,11 +170,16 @@ class Evaluator(fnDefs: List<FnDef>) {
                 if(expr.elements.isEmpty()) {
                     return Value.Struct("listnil", listOf())
                 }
-                val value = eval(env, expr.elements[0])
+                val firstValue = eval(env, expr.elements[0])
                 for(element in expr.elements) {
                     val evaled = eval(env, element)
-                    if (evaled.javaClass != value.javaClass) {
-                        throw Error("List must only contain elements of ${value.javaClass}")
+                    if (evaled.javaClass != firstValue.javaClass) {
+                        if(firstValue is Value.Struct) {
+                            if (firstValue.castAs<Value.Struct>().fields[0].javaClass != evaled.javaClass) {
+                                throw Error("")
+                            }
+                        }
+                        else throw Error("List must only contain elements of ${firstValue.javaClass}")
                     }
                 }
                 return expr.elements.map { eval(env, it) }.foldRight(Value.Struct("listnil", listOf()))

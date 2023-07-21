@@ -1,18 +1,18 @@
-def <a> filter(f: a -> Bool, list: [a]): [a] =>
+def <a> filter(list: [a], f: a -> Bool): [a] =>
     case list {
         of [] => []
         of [h, t] =>
             if f(h) then
-                h::filter(f)(t)
+                h::filter(t)(f)
             else
-                filter(f)(t)
+                filter(t)(f)
     }
 
-def <a, b> map(f: a -> b, list: [a]) : [b] =>
+def <a, b> map(list: [a], f: a -> b) : [b] =>
     case list {
         of [] => []
         of [h, t] =>
-            f(h)::map(f)(t)
+            f(h)::map(t)(f)
     }
 
 def <a> size(list: [a]): Integer =>
@@ -30,6 +30,7 @@ def <a, b> fold(list : [b], initial : a, f: a -> b -> a) : a =>
         }
 
 let concat_a = fn x => x ++ "a" in
+let make_one = fn x => 1 in
 let create_text = fn x => fn y => x ++ y in
 let ls = ["a", "b", "c", "a"] in
-fold(ls)("")(create_text)
+map(ls)(make_one)

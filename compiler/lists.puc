@@ -4,6 +4,7 @@ let add = fn x => fn y => x + y in
 let ls = [1, 2, 3, 4] in
 
 let concat_a = fn x => x ++ "a" in
+let make_one = fn x => 1 in
 let create_text = fn x => fn y => x ++ y in
 let ls = ["a", "b", "c", "a"] in
 fold(ls)("")(create_text)
